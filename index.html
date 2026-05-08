@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Language Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="bg-white shadow-lg rounded-2xl p-6 max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- Left: Video Feed -->
+    <div class="flex flex-col items-center">
+      <h1 class="text-2xl font-bold text-indigo-600 mb-4">🤟 Live Camera Feed</h1>
+      <div class="border-4 border-indigo-300 rounded-xl overflow-hidden">
+        <img src="{{ url_for('video_feed') }}" class="w-full" alt="Camera Stream">
+      </div>
+    </div>
+
+    <!-- Right: Chatbox -->
+    <div class="flex flex-col">
+      <h1 class="text-2xl font-bold text-indigo-600 mb-4">💬 Chat</h1>
+
+      <!-- Chat Window -->
+      <div id="chatbox" class="flex-1 bg-gray-50 border border-gray-300 rounded-lg p-4 overflow-y-auto h-96 mb-4">
+        <p class="text-gray-400 text-sm">Start chatting... Predictions will appear here.</p>
+      </div>
+
+      <!-- Input Box -->
+      <form id="chatForm" class="flex items-center space-x-2">
+        <input type="text" id="userInput" placeholder="Type a message..." 
+               class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        <button type="submit" 
+                class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const chatForm = document.getElementById("chatForm");
+    const userInput = document.getElementById("userInput");
+
+    function addMessage(sender, message) {
+      const msg = document.createElement("div");
+      msg.className = sender === "user" 
+        ? "text-right mb-2" 
+        : "text-left mb-2";
+
+      msg.innerHTML = `
+        <span class="inline-block px-3 py-2 rounded-lg ${
+          sender === "user" 
+          ? "bg-indigo-500 text-white" 
+          : "bg-gray-200 text-gray-800"
+        }">${message}</span>
+      `;
+      chatbox.appendChild(msg);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    // Handle user chat
+    chatForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if (text !== "") {
+        addMessage("user", text);
+        userInput.value = "";
+      }
+    });
+
+    // Get real predictions from Flask backend
+    async function fetchPrediction() {
+      try {
+        const response = await fetch("/predict");
+        const data = await response.json();
+        if (data.prediction) {
+          addMessage("bot", "Predicted Sign: " + data.prediction);
+        }
+      } catch (err) {
+        console.error("Prediction fetch error:", err);
+      }
+    }
+
+    // Poll backend every 3 seconds
+    setInterval(fetchPrediction, 3000);
+  </script>
+
+</body>
+</html>
